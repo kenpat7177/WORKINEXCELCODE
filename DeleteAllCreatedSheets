@@ -1,0 +1,56 @@
+Sub DeleteAllCreatedSheets()
+    Dim wsA As Worksheet, lr As Long, i As Long, k As String
+    Dim wsNames As Collection
+    Dim ws As Worksheet, wsName As Variant
+
+    ' Initialize the collection to hold sheet names
+    Set wsNames = New Collection
+    
+    ' Reference the "All Expense Sheet"
+    Set wsA = ThisWorkbook.Sheets("All Expense Sheet")
+    
+    ' Find the last row with data in the "Name (Keyword)" column (assuming it's column C)
+    lr = wsA.Cells(wsA.Rows.Count, "C").End(xlUp).Row
+
+    ' Loop through the "Name (Keyword)" column and add the sheet names to the collection
+    For i = 2 To lr
+        k = Trim(wsA.Cells(i, 3).Value)
+        If k <> "" Then
+            Dim tExpense As String
+            Dim tQuoting As String
+            
+            tExpense = k & " Expense"
+            tQuoting = k & " Quoting"
+            
+            If Len(tExpense) > 31 Then tExpense = Left(tExpense, 31)
+            If Len(tQuoting) > 31 Then tQuoting = Left(tQuoting, 31)
+            
+            wsNames.Add tExpense
+            wsNames.Add tQuoting
+        End If
+    Next i
+
+    ' Ask for confirmation before deletion
+    Dim ur As VbMsgBoxResult
+    ur = MsgBox("Do you want to delete all created sheets based on the 'Name (Keyword)' column?", vbYesNo + vbQuestion, "Delete Created Sheets")
+    
+    If ur = vbYes Then
+        For Each wsName In wsNames
+            ' Check if the sheet exists and is not "All Expense Sheet" before trying to delete it
+            If wsName <> "All Expense Sheet" Then
+                On Error Resume Next
+                Application.DisplayAlerts = False
+                Set ws = ThisWorkbook.Sheets(wsName)
+                If Not ws Is Nothing Then
+                    ws.Delete
+                End If
+                Application.DisplayAlerts = True
+                On Error GoTo 0
+            End If
+        Next wsName
+        MsgBox "All created sheets have been deleted.", vbInformation
+    Else
+        MsgBox "No sheets were deleted.", vbInformation
+    End If
+End Sub
+
