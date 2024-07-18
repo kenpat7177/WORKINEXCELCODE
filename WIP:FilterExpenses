@@ -1,0 +1,69 @@
+Sub FilterExpenses()
+    Dim wb As Workbook
+    Dim wsAll As Worksheet, wsGasket As Worksheet, wsTrash As Worksheet
+    Dim lastRow As Long
+    Dim cell As Range, rowNum As Long
+    Dim requester As String
+    Dim fd As FileDialog
+    Dim filePath As String
+    
+    ' Open file dialog to allow user to select the workbook
+    Set fd = Application.FileDialog(msoFileDialogFilePicker)
+    fd.Title = "Select the Expense Workbook"
+    fd.Filters.Clear
+    fd.Filters.Add "Excel Files", "*.xls; *.xlsx; *.xlsm"
+    fd.AllowMultiSelect = False
+    
+    If fd.Show = -1 Then
+        filePath = fd.SelectedItems(1)
+    Else
+        MsgBox "No file selected. The macro will not run.", vbExclamation
+        Exit Sub
+    End If
+
+    ' Open the selected workbook
+    Set wb = Workbooks.Open(filePath)
+    
+    ' Set the worksheets
+    On Error Resume Next
+    Set wsAll = wb.Sheets("sheet1")
+    Set wsGasket = wb.Sheets("Gasket System")
+    Set wsTrash = wb.Sheets("Trash System Expense")
+    On Error GoTo 0
+    
+    If wsAll Is Nothing Or wsGasket Is Nothing Or wsTrash Is Nothing Then
+        MsgBox "One or more required sheets are missing. The macro will not run.", vbExclamation
+        wb.Close SaveChanges:=False
+        Exit Sub
+    End If
+    
+    ' Clear existing data in Gasket System and Trash System Expense sheets
+    wsGasket.Cells.Clear
+    wsTrash.Cells.Clear
+
+    ' Copy header row to Gasket System and Trash System Expense sheets
+    wsAll.Rows(1).Copy Destination:=wsGasket.Rows(1)
+    wsAll.Rows(1).Copy Destination:=wsTrash.Rows(1)
+
+    lastRow = wsAll.Cells(wsAll.Rows.Count, "A").End(xlUp).Row
+
+    ' Loop through each row in the All Expense Sheet
+    For rowNum = 2 To lastRow
+        requester = wsAll.Cells(rowNum, "C").Value ' Assuming Requester is in column C
+        Dim keyword As String
+        keyword = wsAll.Cells(rowNum, "B").Value ' Assuming Name(Keyword) is in column B
+
+        ' Filter by requester and keyword
+        If requester = "Philip Dewitt" Or requester = "Kenny Patel" Or requester = "Pedro De Oliveria" Or requester = "Richard Davis" Or requester = "Steven Talaga" Then
+            If InStr(1, keyword, "Gasket System", vbTextCompare) > 0 Then
+                wsAll.Rows(rowNum).Copy Destination:=wsGasket.Rows(wsGasket.Cells(wsGasket.Rows.Count, "A").End(xlUp).Row + 1)
+            ElseIf InStr(1, keyword, "Trash System", vbTextCompare) > 0 Then
+                wsAll.Rows(rowNum).Copy Destination:=wsTrash.Rows(wsTrash.Cells(wsTrash.Rows.Count, "A").End(xlUp).Row + 1)
+            End If
+        End If
+    Next rowNum
+
+    ' Close the workbook without saving
+    wb.Close SaveChanges:=False
+End Sub
+
