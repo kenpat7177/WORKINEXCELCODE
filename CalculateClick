@@ -1,0 +1,48 @@
+Private Sub cmdCalculate_Click()
+    Dim ws As Worksheet
+    Dim i As Integer
+    Dim quoteTotal As Double
+    Dim actualTotal As Double
+    Dim materialCost As Double
+    Dim totalPrice As Double
+    Dim rate As Double
+    
+    ' Set your worksheet
+    Set ws = ThisWorkbook.Sheets("Sheet1") ' Change "Sheet1" to your sheet name if different
+    
+    ' Define the rate per hour
+    rate = 55 ' Change this value if the rate per hour is different
+    
+    ' Clear existing data
+    ws.Range("O2:Q26").ClearContents
+    
+    ' Loop through each entry and calculate totals
+    For i = 1 To 25
+        If Me.Controls("txtProShop" & i).Value <> "" Then
+            ws.Cells(i + 1, 15).Value = Me.Controls("txtProShop" & i).Value
+            ws.Cells(i + 1, 16).Value = Me.Controls("txtQuoteHours" & i).Value
+            ws.Cells(i + 1, 17).Value = Me.Controls("txtActualHours" & i).Value
+            
+            quoteTotal = quoteTotal + Val(Me.Controls("txtQuoteHours" & i).Value)
+            actualTotal = actualTotal + Val(Me.Controls("txtActualHours" & i).Value)
+        End If
+    Next i
+    
+    ' Calculate totals
+    materialCost = actualTotal * rate
+    totalPrice = quoteTotal * rate + materialCost
+    
+    ' Output the results
+    ws.Cells(27, 15).Value = "Quoted Total (Price)"
+    ws.Cells(27, 16).Value = "$" & Format(quoteTotal * rate, "#,##0.00")
+    ws.Cells(27, 17).Value = "$" & Format(materialCost, "#,##0.00") & " Actual (Price)"
+    
+    ws.Cells(28, 15).Value = "Total Quoted Hours"
+    ws.Cells(28, 16).Value = quoteTotal
+    ws.Cells(28, 17).Value = actualTotal & " Total Actual Hours"
+    
+    ws.Cells(29, 17).Value = "$" & Format(totalPrice, "#,##0.00") & " Total Price for Job"
+    
+    MsgBox "Calculation complete.", vbInformation
+End Sub
+
