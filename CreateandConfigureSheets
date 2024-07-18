@@ -1,0 +1,161 @@
+Sub CreateAndConfigureSheets()
+    Dim wsA As Worksheet
+    Dim lr As Long, i As Long
+    Dim k As String, tExp As String, tQuo As String
+    Dim wsEx As Boolean, ws As Worksheet, ksExp As Worksheet, ksQuo As Worksheet
+    Dim kdExp As Object, kdQuo As Object, csColl As Collection, sn As Collection
+    Dim nr As Long
+
+    Set wsA = ThisWorkbook.Sheets("All Expense Sheet")
+    Set kdExp = CreateObject("Scripting.Dictionary")
+    Set kdQuo = CreateObject("Scripting.Dictionary")
+    Set csColl = New Collection
+    Set sn = New Collection
+
+    lr = wsA.Cells(wsA.Rows.Count, "A").End(xlUp).Row
+
+    ' Loop through each row in the All Expense Sheet
+    For i = 2 To lr
+        k = Trim(wsA.Cells(i, 3).Value)  ' Use only Column C for searching Name(Keyword)
+        If k <> "" Then
+            ' Create Expense Sheet
+            tExp = k & " Expense"
+            tQuo = k & " Quoting"
+            If Len(tExp) > 31 Then tExp = Left(tExp, 31)
+            If Len(tQuo) > 31 Then tQuo = Left(tQuo, 31)
+
+            ' Handle Expense Sheet
+            If Not kdExp.exists(tExp) Then
+                wsEx = False
+                For Each ws In ThisWorkbook.Sheets
+                    If ws.Name = tExp Then
+                        wsEx = True
+                        Set ksExp = ws
+                        Exit For
+                    End If
+                Next ws
+
+                If Not wsEx Then
+                    Set ksExp = ThisWorkbook.Sheets.Add(After:=ThisWorkbook.Sheets(ThisWorkbook.Sheets.Count))
+                    ksExp.Name = tExp
+                    wsA.Rows(1).Copy Destination:=ksExp.Rows(1)  ' Copy header row
+                    csColl.Add ksExp
+                    sn.Add tExp
+                End If
+
+                kdExp.Add tExp, ksExp
+            End If
+
+            Set ksExp = kdExp(tExp)
+            nr = ksExp.Cells(ksExp.Rows.Count, "A").End(xlUp).Row + 1
+            wsA.Rows(i).Copy Destination:=ksExp.Rows(nr)
+
+            ' Sum the values in column M and display at the bottom
+            lr = ksExp.Cells(ksExp.Rows.Count, "A").End(xlUp).Row
+            nr = lr + 1
+            ksExp.Cells(nr, "M").Formula = "=SUM(M2:M" & lr & ")"
+            ksExp.Cells(nr, "L").Value = "Material Cost"
+            ksExp.Cells(nr, "L").Font.Bold = True
+
+            ' Set column widths for K and L
+            ksExp.Columns("K").ColumnWidth = 12
+            ksExp.Columns("L").ColumnWidth = 56.25
+
+            ' Handle Quoting Sheet
+            If Not kdQuo.exists(tQuo) Then
+                wsEx = False
+                For Each ws In ThisWorkbook.Sheets
+                    If ws.Name = tQuo Then
+                        wsEx = True
+                        Set ksQuo = ws
+                        Exit For
+                    End If
+                Next ws
+
+                If Not wsEx Then
+                    Set ksQuo = ThisWorkbook.Sheets.Add(After:=ThisWorkbook.Sheets(ThisWorkbook.Sheets.Count))
+                    ksQuo.Name = tQuo
+                    wsA.Rows(1).Copy Destination:=ksQuo.Rows(1)  ' Copy header row
+                    csColl.Add ksQuo
+                    sn.Add tQuo
+                End If
+
+                kdQuo.Add tQuo, ksQuo
+            End If
+
+            Set ksQuo = kdQuo(tQuo)
+            nr = ksQuo.Cells(ksQuo.Rows.Count, "A").End(xlUp).Row + 1
+            wsA.Rows(i).Copy Destination:=ksQuo.Rows(nr)
+
+            ' Create the table starting at Column O
+            With ksQuo
+                .Cells(1, 15).Value = "ProShop Number"  ' Column O
+                .Cells(1, 16).Value = "Quote Hours"    ' Column P
+                .Cells(1, 17).Value = "Actual Hours"   ' Column Q
+                .Cells(1, 18).Value = "Column1"        ' Column R
+
+                ' Labels for totals starting from line 31
+                .Cells(31, 15).Value = "Total Quoted Hours"  ' Column O
+                .Cells(31, 18).Value = "Actual Total Hours"  ' Column R
+
+                .Cells(32, 15).Value = "Total Quoted Price"  ' Column O
+                .Cells(32, 18).Value = "Total Actual Price"  ' Column R
+
+                ' Formula for total quoted hours and actual hours
+                .Cells(31, 16).Formula = "=SUM(P2:P30)"  ' Total quoted hours
+                .Cells(31, 17).Formula = "=SUM(Q2:Q30)"  ' Total actual hours
+
+                ' Formula for total quoted price and actual price
+                .Cells(32, 16).Formula = "=P31*55"      ' Total quoted price
+                .Cells(32, 17).Formula = "=Q31*55"      ' Total actual price
+
+                ' Labels for Quoted and Actual Hours Total
+                .Cells(30, 15).Value = "Quoted Hours Total"
+                .Cells(30, 18).Value = "Actual Hours Total"
+
+                ' Sum up the total quote hours and actual hours
+                .Cells(30, 16).Formula = "=SUM(P2:P29)"
+                .Cells(30, 17).Formula = "=SUM(Q2:Q29)"
+
+                ' Sum the values in column M and display at the bottom
+                lr = ksQuo.Cells(ksQuo.Rows.Count, "A").End(xlUp).Row
+                nr = lr + 1
+                .Cells(nr, "M").Formula = "=SUM(M2:M" & lr & ")"
+                .Cells(nr, "L").Value = "Material Cost"
+                .Cells(nr, "L").Font.Bold = True
+
+                ' Set column widths for K and L
+                .Columns("K").ColumnWidth = 12
+                .Columns("L").ColumnWidth = 56.25
+
+                ' Move the labels and calculated values as specified
+                .Cells(31, 16).Formula = .Cells(nr, "M").Formula
+                .Cells(31, 18).Value = "Material Cost"
+                .Cells(31, 18).Font.Bold = True
+
+                ' Take the summed value from Column M and apply it to Line 31, Column Q
+                .Cells(31, 17).Formula = .Cells(nr, "M").Formula
+
+                ' Multiply the sum of P30 and Q30 by 55 and display in P32 and Q32
+                .Cells(32, 16).Formula = "=P30*55"
+                .Cells(32, 17).Formula = "=Q30*55"
+
+                ' Sum of Q31 and Q32
+                .Cells(33, 17).Formula = "=Q31 + Q32"
+
+                .Cells(33, 18).Value = "Total Price for Job"
+                .Cells(33, 18).Font.Bold = True
+
+                ' Apply bold formatting to the labels
+                .Range("O1:R1, O30:R33").Font.Bold = True
+
+                ' Auto-fit the columns for better visibility
+                .Columns("O:R").AutoFit
+            End With
+        End If
+    Next i
+
+    MsgBox "The Expense and Quoting sheets have been created and set up.", vbInformation
+
+End Sub
+
